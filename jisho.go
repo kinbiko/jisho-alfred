@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -13,14 +13,13 @@ import (
 	aw "github.com/deanishe/awgo"
 )
 
-var wf *aw.Workflow
-
-func init() {
-	wf = aw.New()
+type app struct {
+	wf *aw.Workflow
 }
 
 func main() {
-	wf.Run(run)
+	a := &app{wf: aw.New()}
+	a.wf.Run(a.run)
 }
 
 type Datum struct {
@@ -60,7 +59,7 @@ func getResults(query string) []*entry {
 	if err != nil {
 		return nil
 	}
-	bodyBytes, err := ioutil.ReadAll(res.Body)
+	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil
 	}
@@ -71,7 +70,7 @@ func getResults(query string) []*entry {
 	}
 
 	r := &resp{}
-	json.Unmarshal(bodyBytes, r)
+	_ = json.Unmarshal(bodyBytes, r)
 
 	entries := []*entry{}
 
@@ -119,23 +118,23 @@ func extractDefinitions(datum *Datum) []string {
 // Don't tick "Alfred filters results"
 //
 // There's probably a better way of doing this...
-func run() {
+func (a *app) run() {
 	query := strings.Join(os.Args[1:], " ")
 	if !valid(query) {
-		it := wf.NewItem(fmt.Sprintf("No match for '%s'", query))
+		it := a.wf.NewItem(fmt.Sprintf("No match for '%s'", query))
 		it.Arg(query)
 		it.Valid(true)
 		it.Icon(aw.IconNote)
-		wf.SendFeedback()
+		a.wf.SendFeedback()
 		return
 	}
 
 	for _, entry := range getResults(query) {
-		it := wf.NewItem(fmt.Sprintf("%s (%s)", entry.slug, strings.Join(entry.readings, " ")))
+		it := a.wf.NewItem(fmt.Sprintf("%s (%s)", entry.slug, strings.Join(entry.readings, " ")))
 		it.Arg(query)
-		it.Subtitle(fmt.Sprintf("%s", strings.Join(entry.defns, ", ")))
+		it.Subtitle(strings.Join(entry.defns, ", "))
 		it.Icon(aw.IconNote)
 	}
 
-	wf.SendFeedback()
+	a.wf.SendFeedback()
 }
