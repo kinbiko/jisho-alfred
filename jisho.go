@@ -111,19 +111,12 @@ func extractDefinitions(datum *Datum) []string {
 	return defns
 }
 
-// Must be created in Alfred as:
-// Script filter
-// Language: External Script
-// Script file: ~/go/bin/jisho
-// Don't tick "Alfred filters results"
-//
-// There's probably a better way of doing this...
+// Must be created in Alfred as Script filter
 func (a *app) run() {
 	query := strings.Join(os.Args[1:], " ")
 	if !valid(query) {
 		it := a.wf.NewItem(fmt.Sprintf("No match for '%s'", query))
 		it.Arg(query)
-		it.Valid(true)
 		it.Icon(aw.IconNote)
 		a.wf.SendFeedback()
 		return
@@ -131,9 +124,11 @@ func (a *app) run() {
 
 	for _, entry := range getResults(query) {
 		it := a.wf.NewItem(fmt.Sprintf("%s (%s)", entry.slug, strings.Join(entry.readings, " ")))
-		it.Arg(query)
+		it.Arg("https://jisho.org/search/" + entry.slug)
 		it.Subtitle(strings.Join(entry.defns, ", "))
-		it.Icon(aw.IconNote)
+		it.Icon(&aw.Icon{Value: "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericNetworkIcon.icns"})
+
+		it.Valid(true)
 	}
 
 	a.wf.SendFeedback()
